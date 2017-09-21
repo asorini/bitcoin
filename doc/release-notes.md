@@ -8,7 +8,7 @@ Bitcoin Core version *version* is now available from:
 This is a new major version release, including new features, various bugfixes
 and performance improvements, as well as updated translations.
 
-Please report bugs using the issue tracker at github:
+Please report bugs using the issue tracker at GitHub:
 
   <https://github.com/bitcoin/bitcoin/issues>
 
@@ -16,135 +16,77 @@ To receive security and update notifications, please subscribe to:
 
   <https://bitcoincore.org/en/list/announcements/join/>
 
+How to Upgrade
+==============
+
+If you are running an older version, shut it down. Wait until it has completely
+shut down (which might take a few minutes for older versions), then run the 
+installer (on Windows) or just copy over `/Applications/Bitcoin-Qt` (on Mac)
+or `bitcoind`/`bitcoin-qt` (on Linux).
+
+The first time you run version 0.15.0, your chainstate database will be converted to a
+new format, which will take anywhere from a few minutes to half an hour,
+depending on the speed of your machine.
+
+Note that the block database format also changed in version 0.8.0 and there is no
+automatic upgrade code from before version 0.8 to version 0.15.0. Upgrading
+directly from 0.7.x and earlier without redownloading the blockchain is not supported.
+However, as usual, old wallet versions are still supported.
+
+Downgrading warning
+-------------------
+
+The chainstate database for this release is not compatible with previous
+releases, so if you run 0.15 and then decide to switch back to any
+older version, you will need to run the old release with the `-reindex-chainstate`
+option to rebuild the chainstate data structures in the old format.
+
+If your node has pruning enabled, this will entail re-downloading and
+processing the entire blockchain.
+
+Compatibility
+==============
+
+Bitcoin Core is extensively tested on multiple operating systems using
+the Linux kernel, macOS 10.8+, and Windows Vista and later. Windows XP is not supported.
+
+Bitcoin Core should also work on most other Unix-like systems but is not
+frequently tested on them.
+
 Notable changes
 ===============
 
-Example item
-----------------
-
-
-bitcoin-cli: arguments privacy
---------------------------------
-
-The RPC command line client gained a new argument, `-stdin`
-to read extra arguments from standard input, one per line until EOF/Ctrl-D.
-For example:
-
-    $ echo -e "mysecretcode\n120" | src/bitcoin-cli -stdin walletpassphrase
-
-It is recommended to use this for sensitive information such as wallet
-passphrases, as command-line arguments can usually be read from the process
-table by any user on the system.
-
-RPC low-level changes
-----------------------
-
-- `gettxoutsetinfo` UTXO hash (`hash_serialized`) has changed. There was a divergence between
-  32-bit and 64-bit platforms, and the txids were missing in the hashed data. This has been
-  fixed, but this means that the output will be different than from previous versions.
-
-- Full UTF-8 support in the RPC API. Non-ASCII characters in, for example,
-  wallet labels have always been malformed because they weren't taken into account
-  properly in JSON RPC processing. This is no longer the case. This also affects
-  the GUI debug console.
-
-C++11 and Python 3
--------------------
-
-Various code modernizations have been done. The Bitcoin Core code base has
-started using C++11. This means that a C++11-capable compiler is now needed for
-building. Effectively this means GCC 4.7 or higher, or Clang 3.3 or higher.
-
-When cross-compiling for a target that doesn't have C++11 libraries, configure with
-`./configure --enable-glibc-back-compat ... LDFLAGS=-static-libstdc++`.
-
-For running the functional tests in `qa/rpc-tests`, Python3.4 or higher is now
-required.
-
-0.13.0 Change log
-=================
-
-Detailed release notes follow. This overview includes changes that affect
-behavior, not code moves, refactors and string updates. For convenience in locating
-the code changes and accompanying discussion, both the pull request and
-git merge commit are mentioned.
-
-### RPC and REST
-
-Asm script outputs now contain OP_CHECKLOCKTIMEVERIFY in place of OP_NOP2
--------------------------------------------------------------------------
-
-OP_NOP2 has been renamed to OP_CHECKLOCKTIMEVERIFY by [BIP 
-65](https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki)
-
-The following outputs are affected by this change:
-- RPC `getrawtransaction` (in verbose mode)
-- RPC `decoderawtransaction`
-- RPC `decodescript`
-- REST `/rest/tx/` (JSON format)
-- REST `/rest/block/` (JSON format when including extended tx details)
-- `bitcoin-tx -json`
-
-New mempool information RPC calls
----------------------------------
-
-RPC calls have been added to output detailed statistics for individual mempool
-entries, as well as to calculate the in-mempool ancestors or descendants of a
-transaction: see `getmempoolentry`, `getmempoolancestors`, `getmempooldescendants`.
-
-### ZMQ
-
-Each ZMQ notification now contains an up-counting sequence number that allows
-listeners to detect lost notifications.
-The sequence number is always the last element in a multi-part ZMQ notification and
-therefore backward compatible.
-Each message type has its own counter.
-(https://github.com/bitcoin/bitcoin/pull/7762)
-
-### Configuration and command-line options
-
-### Block and transaction handling
-
-### P2P protocol and network code
-
-The p2p alert system has been removed in #7692 and the 'alert' message is no longer supported.
-
-
-Fee filtering of invs (BIP 133)
+Miner block size limiting deprecated
 ------------------------------------
 
-The optional new p2p message "feefilter" is implemented and the protocol
-version is bumped to 70013. Upon receiving a feefilter message from a peer,
-a node will not send invs for any transactions which do not meet the filter
-feerate. [BIP 133](https://github.com/bitcoin/bips/blob/master/bip-0133.mediawiki)
+Though blockmaxweight has been preferred for limiting the size of blocks returned by
+getblocktemplate since 0.13.0, blockmaxsize remained as an option for those who wished
+to limit their block size directly. Using this option resulted in a few UI issues as
+well as non-optimal fee selection and ever-so-slightly worse performance, and has thus
+now been deprecated. Further, the blockmaxsize option is now used only to calculate an
+implied blockmaxweight, instead of limiting block size directly. Any miners who wish
+to limit their blocks by size, instead of by weight, will have to do so manually by
+removing transactions from their block template directly.
 
-### Validation
+HD-wallets by default
+---------------------
+Due to a backward-incompatible change in the wallet database, wallets created
+with version 0.16.0 will be rejected by previous versions. Also, version 0.16.0
+will only create hierarchical deterministic (HD) wallets.
 
-### Build system
+Low-level RPC changes
+----------------------
+- The "currentblocksize" value in getmininginfo has been removed.
+- The deprecated RPC `getinfo` was removed. It is recommended that the more specific RPCs are used:
+  * `getblockchaininfo`
+  * `getnetworkinfo`
+  * `getwalletinfo`
+  * `getmininginfo`
 
-### Wallet
+Credits
+=======
 
-Hierarchical Deterministic Key Generation
------------------------------------------
-Newly created wallets will use hierarchical deterministic key generation
-according to BIP32 (keypath m/0'/0'/k').
-Existing wallets will still use traditional key generation.
+Thanks to everyone who directly contributed to this release:
 
-Backups of HD wallets, regardless of when they have been created, can
-therefore be used to re-generate all possible private keys, even the
-ones which haven't already been generated during the time of the backup.
 
-HD key generation for new wallets can be disabled by `-usehd=0`. Keep in
-mind that this flag only has affect on newly created wallets.
-You can't disable HD key generation once you have created a HD wallet.
-
-There is no distinction between internal (change) and external keys.
-
-[Pull request](https://github.com/bitcoin/bitcoin/pull/8035/files), [BIP 32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)
-
-### GUI
-
-### Tests
-
-### Miscellaneous
-
+As well as everyone that helped translating on [Transifex](https://www.transifex.com/projects/p/bitcoin/).
